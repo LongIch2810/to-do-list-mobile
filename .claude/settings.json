@@ -1,0 +1,44 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"D:/saved/Project/to-do-list-mobile-app/.agents/skills/vdl-verified-development-loop/scripts/vdl-hook.cmd\" SessionStart"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"D:/saved/Project/to-do-list-mobile-app/.agents/skills/vdl-verified-development-loop/scripts/vdl-hook.cmd\" SubagentStart"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"D:/saved/Project/to-do-list-mobile-app/.agents/skills/vdl-verified-development-loop/scripts/vdl-hook.cmd\" SubagentStop"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"D:/saved/Project/to-do-list-mobile-app/.agents/skills/vdl-verified-development-loop/scripts/vdl-hook.cmd\" Stop"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "\"D:/saved/Project/to-do-list-mobile-app/.agents/skills/vdl-verified-development-loop/scripts/vdl-hook.cmd\" sessionStart"
+      }
+    ],
+    "subagentStart": [
+      {
+        "command": "\"D:/saved/Project/to-do-list-mobile-app/.agents/skills/vdl-verified-development-loop/scripts/vdl-hook.cmd\" subagentStart"
+      }
+    ],
+    "subagentStop": [
+      {
+        "command": "\"D:/saved/Project/to-do-list-mobile-app/.agents/skills/vdl-verified-development-loop/scripts/vdl-hook.cmd\" subagentStop"
+      }
+    ],
+    "sessionEnd": [
+      {
+        "command": "\"D:/saved/Project/to-do-list-mobile-app/.agents/skills/vdl-verified-development-loop/scripts/vdl-hook.cmd\" sessionEnd"
+      }
+    ]
+  },
+  "version": 1
+}
