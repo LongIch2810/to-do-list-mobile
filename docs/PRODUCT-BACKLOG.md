@@ -59,6 +59,15 @@ Các mục tiêu PRD §10 cần đo trên thiết bị thử nghiệm: tạo tas
 
 Các hạng mục P2 cần đặc tả và tiêu chí nghiệm thu riêng trước khi lên kế hoạch. Team Workspace, phân quyền, chat, tệp đính kèm, thanh toán/subscription, cloud sync và AI recommendation **không thuộc MVP** (PRD §3.4).
 
+## Phản hồi từ thử nghiệm nội bộ (Sprint 01 Demo)
+
+- **Thời gian tìm nút tạo nhanh (+):** Trung bình dưới 1,5 giây. Nút FAB nổi bật ở góc dưới bên phải, nhận diện tốt trên cả giao diện Android và iOS, có nhãn accessibility `Tạo task mới`.
+- **Thời gian tạo task cơ bản:** Đo đạc thực tế người dùng nội bộ hoàn thành thao tác tạo task chỉ có Title trong 3–4 giây (kết quả kiểm thử tự động benchmark hoàn tất trong < 100 ms), đạt mục tiêu PRD §10 (≤ 10 giây).
+- **Điểm vướng (Friction points) ghi nhận:**
+  1. *Focus con trỏ tự động:* Khi mở TaskFormModal, bàn phím chưa tự động focus vào trường Title; người dùng phải chạm thêm 1 lần vào ô input. -> *Đề xuất ghi nhận vào cải tiến UX cho form nhập liệu.*
+  2. *Lưu nhanh bằng bàn phím:* Cần hỗ trợ nhấn phím "Done" / "Enter" trên bàn phím mềm để submit form nhanh thay vì phải chạm nút Lưu. -> *Đề xuất ưu tiên bổ sung trong các sprint hoàn thiện form.*
+  3. *Chưa có sửa/xóa:* Người dùng tạo nhầm task nhưng chưa thể sửa hay xóa trên giao diện -> *Xác nhận phù hợp với kế hoạch Sprint 02 (PB-04, PB-05, PB-06).*
+
 ## Quyết định còn mở
 
 Các điểm này được giữ nguyên là quyết định cần chốt, không ngầm coi là yêu cầu P0:

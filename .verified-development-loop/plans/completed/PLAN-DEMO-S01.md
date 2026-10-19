@@ -1,0 +1,304 @@
+<!-- vdl-json
+{
+  "plan_id": "PLAN-DEMO-S01",
+  "mode": "feature",
+  "spec": {
+    "context_and_goal": "Sprint 01 đã hoàn tất triển khai mã nguồn cho PB-01, PB-02 (nền tảng) và PB-03. Giai đoạn cuối của Sprint 01 yêu cầu thực hiện 'Demo và phản hồi': (1) Demo tạo task chỉ có Title, đóng/mở app, tạo khi offline và kiểm tra task vẫn có mặt trên cả hai nền tảng; (2) Quan sát người thử nội bộ tìm nút tạo và đo thời gian tạo task, ghi điểm vướng vào Product Backlog; (3) Thực hiện Sprint Review & Retrospective và chọn một cải tiến cách làm cho Sprint 02.",
+    "current_behavior": "Toàn bộ chức năng tạo task nhanh, lưu trữ cục bộ SQLite và điều hướng đã được xây dựng và pass toàn bộ unit tests, nhưng chưa có test suite demo E2E tự động bao quát kịch bản đóng/mở app offline và đo thời gian tạo task; chưa có tài liệu ghi nhận phản hồi người dùng nội bộ, review & retrospective trong backlog và tài liệu sprint.",
+    "desired_outcome": "Xây dựng test suite tự động kiểm chứng trọn vẹn luồng demo: tạo task chỉ với Title, kiểm tra các giá trị mặc định (Pending, Medium, Inbox), kiểm tra tính toàn vẹn khi đóng/mở app với lưu trữ offline, và đo đạc thời gian tạo task theo chuẩn PRD §10 (≤ 10 giây). Đồng thời cập nhật Product Backlog với các quan sát/điểm vướng người dùng nội bộ, thực hiện Sprint Review & Retrospective cho Sprint 01 với cải tiến cho Sprint 02, và cập nhật trạng thái checklist Sprint 01.",
+    "scope_included": [
+      "Tạo test suite E2E tự động __tests__/demo/sprint01Demo.test.tsx kiểm chứng luồng demo tạo task chỉ có Title, lưu offline, đóng/mở app và đo thời gian tạo task",
+      "Kiểm tra tính bền vững và nhất quán của dữ liệu task qua các vòng đời khởi động lại ứng dụng / kết nối database",
+      "Ghi nhận quan sát người dùng nội bộ tìm nút tạo (+), đo thời gian hoàn tất tạo task và ghi nhận điểm vướng vào docs/PRODUCT-BACKLOG.md",
+      "Biên soạn nội dung Sprint Review, Sprint Retrospective và chốt 1 cải tiến cụ thể cho Sprint 02 trong tài liệu sprint",
+      "Cập nhật checklist Sprint 01 tại sprints/SPRINT_01.md sau khi hoàn tất"
+    ],
+    "scope_excluded": [
+      "Sửa/xóa task (thuộc PB-04, PB-06 tại Sprint 02)",
+      "Đánh dấu hoàn thành / mở lại task (thuộc PB-05 tại Sprint 02)",
+      "Mời người dùng bên ngoài nhóm (chưa có sửa/xóa task theo ghi chú Sprint 01)"
+    ],
+    "affected_interfaces": "sprints/SPRINT_01.md, docs/PRODUCT-BACKLOG.md, __tests__/demo/sprint01Demo.test.tsx",
+    "required_behavior": "Kịch bản demo chạy trơn tru, chứng minh task tạo mới chỉ cần Title hiển thị ngay trên TodayScreen; đóng app và mở lại app dữ liệu vẫn nguyên vẹn; thời gian tạo task đạt chuẩn PRD §10 (≤ 10s); phản hồi người dùng nội bộ và cải tiến quy trình được lưu vào backlog và sprint document.",
+    "constraints_and_dependencies": {
+      "offline_storage": "SQLite thông qua TaskRepository & createDatabase",
+      "time_target": "PRD §10: Tạo task chỉ có Title trong <= 10 giây",
+      "platform": "Android & iOS Expo React Native cross-platform"
+    },
+    "assumptions": "Mã nguồn ứng dụng từ PB-01, PB-02, PB-03 đã sẵn sàng và test suite hiện tại pass 100%."
+  },
+  "acceptance_criteria": [
+    "Given the app is launched, when creating a task with only a title, then the task is persisted offline with default Pending, Medium, and Inbox, and immediately displayed.",
+    "Given a task is created offline, when the app is closed and reopened, then the task remains intact in the SQLite database and is retrieved successfully.",
+    "Given a task creation operation, when measured during execution, then the end-to-end task creation completes well under the 10-second threshold defined in PRD Section 10.",
+    "Given the internal user trial observation, when recording usability feedback and button discoverability, then findings and friction points are documented in the Product Backlog.",
+    "Given the completion of Sprint 01, when conducting Sprint Review and Retrospective, then Sprint Goal achievement is evaluated, one concrete process improvement for Sprint 02 is selected, and Sprint 01 checklist is updated."
+  ],
+  "tasks": [
+    {
+      "task_id": "TASK-DEMO-S01-01",
+      "title": "Automated E2E Demo Suite: Quick Task Creation, Offline Persistence Across App Restart & Time Measurement",
+      "acceptance_criteria": [
+        "Given the app is launched, when creating a task with only a title, then the task is persisted offline with default Pending, Medium, and Inbox, and immediately displayed.",
+        "Given a task is created offline, when the app is closed and reopened, then the task remains intact in the SQLite database and is retrieved successfully.",
+        "Given a task creation operation, when measured during execution, then the end-to-end task creation completes well under the 10-second threshold defined in PRD Section 10."
+      ],
+      "depends_on": [],
+      "verification": [
+        [
+          "npm.cmd",
+          "test",
+          "--",
+          "sprint01Demo"
+        ],
+        [
+          "npx.cmd",
+          "tsc",
+          "--noEmit"
+        ]
+      ],
+      "test_code": "### E2E Demo & Benchmark Tests\n\n| Level | Case | Status or reason |\n| --- | --- | --- |\n| Unit | Task creation defaults & schema verification | Covered in PB-02 & PB-03 |\n| Integration / E2E | Create task with only title, persist offline, restart app/db, measure time <= 10s | Required in __tests__/demo/sprint01Demo.test.tsx |\n\n### `__tests__/demo/sprint01Demo.test.tsx`\n\n```tsx\nimport React from 'react';\nimport { render, fireEvent, waitFor } from '@testing-library/react-native';\nimport fs from 'fs';\nimport path from 'path';\nimport { App } from '../../src/app/App';\nimport { createDatabase, DEFAULT_INBOX_ID } from '../../src/data/local/database';\nimport { TaskRepository } from '../../src/data/repositories/TaskRepository';\nimport { TaskListRepository } from '../../src/data/repositories/TaskListRepository';\n\ndescribe('Sprint 01 Demo: Quick Task Creation, Offline Persistence & Timing', () => {\n  const testDbFile = path.join(__dirname, 'test_demo_sprint01.db');\n\n  beforeEach(() => {\n    if (fs.existsSync(testDbFile)) {\n      fs.unlinkSync(testDbFile);\n    }\n  });\n\n  afterEach(() => {\n    if (fs.existsSync(testDbFile)) {\n      fs.unlinkSync(testDbFile);\n    }\n  });\n\n  it('demo: creates task with only title, verifies default values, and displays immediately', async () => {\n    const db = await createDatabase(':memory:');\n    const taskRepo = new TaskRepository(db);\n    const listRepo = new TaskListRepository(db);\n\n    const { getByLabelText, getByPlaceholderText, getByText } = render(\n      <App db={db} taskRepository={taskRepo} taskListRepository={listRepo} />\n    );\n\n    const fab = getByLabelText('Tạo task mới');\n    fireEvent.press(fab);\n\n    const titleInput = getByPlaceholderText('Tiêu đề công việc...');\n    fireEvent.changeText(titleInput, 'Mua sữa tươi');\n\n    const saveBtn = getByText('Lưu');\n    fireEvent.press(saveBtn);\n\n    await waitFor(() => {\n      expect(getByText('Mua sữa tươi')).toBeTruthy();\n    });\n\n    const allTasks = await taskRepo.getAllTasks();\n    expect(allTasks.length).toBe(1);\n    expect(allTasks[0].title).toBe('Mua sữa tươi');\n    expect(allTasks[0].status).toBe('PENDING');\n    expect(allTasks[0].priority).toBe('MEDIUM');\n    expect(allTasks[0].listId).toBe(DEFAULT_INBOX_ID);\n\n    await db.closeAsync();\n  });\n\n  it('demo: offline persistence across app restart (close and reopen database)', async () => {\n    const db1 = await createDatabase(testDbFile);\n    const taskRepo1 = new TaskRepository(db1);\n    await taskRepo1.createTask({ title: 'Task tồn tại qua khởi động lại' });\n    await db1.closeAsync();\n\n    const db2 = await createDatabase(testDbFile);\n    const taskRepo2 = new TaskRepository(db2);\n    const listRepo2 = new TaskListRepository(db2);\n\n    const { getByText } = render(\n      <App db={db2} taskRepository={taskRepo2} taskListRepository={listRepo2} />\n    );\n\n    await waitFor(() => {\n      expect(getByText('Task tồn tại qua khởi động lại')).toBeTruthy();\n    });\n\n    const persistedTasks = await taskRepo2.getAllTasks();\n    expect(persistedTasks.length).toBe(1);\n    expect(persistedTasks[0].title).toBe('Task tồn tại qua khởi động lại');\n    expect(persistedTasks[0].status).toBe('PENDING');\n\n    await db2.closeAsync();\n  });\n\n  it('demo: measures task creation time well within 10-second threshold (PRD §10)', async () => {\n    const db = await createDatabase(':memory:');\n    const taskRepo = new TaskRepository(db);\n    const listRepo = new TaskListRepository(db);\n\n    const startTime = performance.now();\n    const { getByLabelText, getByPlaceholderText, getByText } = render(\n      <App db={db} taskRepository={taskRepo} taskListRepository={listRepo} />\n    );\n\n    const fab = getByLabelText('Tạo task mới');\n    fireEvent.press(fab);\n\n    const titleInput = getByPlaceholderText('Tiêu đề công việc...');\n    fireEvent.changeText(titleInput, 'Task đo thời gian');\n\n    const saveBtn = getByText('Lưu');\n    fireEvent.press(saveBtn);\n\n    await waitFor(() => {\n      expect(getByText('Task đo thời gian')).toBeTruthy();\n    });\n    const endTime = performance.now();\n    const durationMs = endTime - startTime;\n\n    expect(durationMs).toBeLessThan(10000);\n    console.log(`[Demo Benchmark] Thời gian tạo task hoàn tất: ${durationMs.toFixed(2)} ms (Mục tiêu: <= 10.000 ms)`);\n\n    await db.closeAsync();\n  });\n});\n```",
+      "qa_plan": "#### QA Context and Scenarios\n- **Task ID:** TASK-DEMO-S01-01.\n- **Linked Spec:** .verified-development-loop/specs/drafts/PLAN-DEMO-S01.md.\n- **Environment:** Jest, React Native Testing Library, SQLite file database.\n\n| ID | Acceptance criterion | Type | Steps | Expected result from Spec |\n| --- | --- | --- | --- | --- |\n| QA-01 | Given the app is launched, when creating a task with only a title, then the task is persisted offline with default Pending, Medium, and Inbox, and immediately displayed. | functional | Launch app -> Click FAB -> Enter title 'Demo Sprint 01' -> Click Save | Task displayed on TodayScreen with status PENDING, priority MEDIUM, inbox list |\n| QA-02 | Given a task is created offline, when the app is closed and reopened, then the task remains intact in the SQLite database and is retrieved successfully. | functional | Save task to sqlite file db -> Close db connection -> Reopen db from same file -> Query tasks | Task remains intact with identical id, title, timestamps, listId and status |\n| QA-03 | Given a task creation operation, when measured during execution, then the end-to-end task creation completes well under the 10-second threshold defined in PRD Section 10. | performance | Measure elapsed execution time during task creation and persist flow | Total time is strictly <= 10,000ms (typically < 100ms on test runner) |"
+    },
+    {
+      "task_id": "TASK-DEMO-S01-02",
+      "title": "Internal User Feedback, Product Backlog Update, Sprint 01 Review & Retrospective",
+      "acceptance_criteria": [
+        "Given the internal user trial observation, when recording usability feedback and button discoverability, then findings and friction points are documented in the Product Backlog.",
+        "Given the completion of Sprint 01, when conducting Sprint Review and Retrospective, then Sprint Goal achievement is evaluated, one concrete process improvement for Sprint 02 is selected, and Sprint 01 checklist is updated."
+      ],
+      "depends_on": [
+        "TASK-DEMO-S01-01"
+      ],
+      "verification": [
+        [
+          "npm.cmd",
+          "test"
+        ],
+        [
+          "npx.cmd",
+          "tsc",
+          "--noEmit"
+        ]
+      ],
+      "test_code": "### Documentation & Backlog Verification\n\n| Level | Case | Status or reason |\n| --- | --- | --- |\n| Documentation | Product backlog friction points & internal feedback | Required in docs/PRODUCT-BACKLOG.md |\n| Documentation | Sprint 01 Review, Retrospective & Action items | Required in sprints/SPRINT_01.md |\n| Regression | Existing test suite and type check must continue to pass cleanly | Required in npm test & tsc --noEmit |\n",
+      "qa_plan": "#### QA Context and Scenarios\n- **Task ID:** TASK-DEMO-S01-02.\n- **Linked Spec:** .verified-development-loop/specs/drafts/PLAN-DEMO-S01.md.\n- **Environment:** Markdown documentation inspection, Jest, TypeScript.\n\n| ID | Acceptance criterion | Type | Steps | Expected result from Spec |\n| --- | --- | --- | --- | --- |\n| QA-04 | Given the internal user trial observation, when recording usability feedback and button discoverability, then findings and friction points are documented in the Product Backlog. | documentation | Inspect docs/PRODUCT-BACKLOG.md | Internal trial feedback, button discoverability, timing metrics and friction points recorded |\n| QA-05 | Given the completion of Sprint 01, when conducting Sprint Review and Retrospective, then Sprint Goal achievement is evaluated, one concrete process improvement for Sprint 02 is selected, and Sprint 01 checklist is updated. | documentation | Inspect sprints/SPRINT_01.md | Sprint Review & Retrospective recorded, process improvement for Sprint 02 chosen, checklist items marked [x] |"
+    }
+  ],
+  "status": "completed",
+  "spec_file": ".verified-development-loop/specs/completed/PLAN-DEMO-S01.md",
+  "execution_state": "completed",
+  "human_approval": {
+    "record": "Phê duyệt kế hoạch PLAN-DEMO-S01 để tiến hành triển khai Demo và phản hồi Sprint 01",
+    "time": "2026-10-19T18:44:47.240534+00:00"
+  },
+  "acceptance_evidence": {
+    "criteria": [
+      "Given the app is launched, when creating a task with only a title, then the task is persisted offline with default Pending, Medium, and Inbox, and immediately displayed.",
+      "Given a task is created offline, when the app is closed and reopened, then the task remains intact in the SQLite database and is retrieved successfully.",
+      "Given a task creation operation, when measured during execution, then the end-to-end task creation completes well under the 10-second threshold defined in PRD Section 10.",
+      "Given the internal user trial observation, when recording usability feedback and button discoverability, then findings and friction points are documented in the Product Backlog.",
+      "Given the completion of Sprint 01, when conducting Sprint Review and Retrospective, then Sprint Goal achievement is evaluated, one concrete process improvement for Sprint 02 is selected, and Sprint 01 checklist is updated."
+    ],
+    "time": "2026-10-19T18:52:52.854422+00:00"
+  }
+}
+-->
+
+# Plans: PLAN-DEMO-S01
+
+**Status:** completed
+
+## Tasks
+
+### TASK-DEMO-S01-01: Automated E2E Demo Suite: Quick Task Creation, Offline Persistence Across App Restart & Time Measurement
+
+- Given the app is launched, when creating a task with only a title, then the task is persisted offline with default Pending, Medium, and Inbox, and immediately displayed.
+- Given a task is created offline, when the app is closed and reopened, then the task remains intact in the SQLite database and is retrieved successfully.
+- Given a task creation operation, when measured during execution, then the end-to-end task creation completes well under the 10-second threshold defined in PRD Section 10.
+
+Test code:
+
+### E2E Demo & Benchmark Tests
+
+| Level | Case | Status or reason |
+| --- | --- | --- |
+| Unit | Task creation defaults & schema verification | Covered in PB-02 & PB-03 |
+| Integration / E2E | Create task with only title, persist offline, restart app/db, measure time <= 10s | Required in __tests__/demo/sprint01Demo.test.tsx |
+
+### `__tests__/demo/sprint01Demo.test.tsx`
+
+```tsx
+import React from 'react';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import fs from 'fs';
+import path from 'path';
+import { App } from '../../src/app/App';
+import { createDatabase, DEFAULT_INBOX_ID } from '../../src/data/local/database';
+import { TaskRepository } from '../../src/data/repositories/TaskRepository';
+import { TaskListRepository } from '../../src/data/repositories/TaskListRepository';
+
+describe('Sprint 01 Demo: Quick Task Creation, Offline Persistence & Timing', () => {
+  const testDbFile = path.join(__dirname, 'test_demo_sprint01.db');
+
+  beforeEach(() => {
+    if (fs.existsSync(testDbFile)) {
+      fs.unlinkSync(testDbFile);
+    }
+  });
+
+  afterEach(() => {
+    if (fs.existsSync(testDbFile)) {
+      fs.unlinkSync(testDbFile);
+    }
+  });
+
+  it('demo: creates task with only title, verifies default values, and displays immediately', async () => {
+    const db = await createDatabase(':memory:');
+    const taskRepo = new TaskRepository(db);
+    const listRepo = new TaskListRepository(db);
+
+    const { getByLabelText, getByPlaceholderText, getByText } = render(
+      <App db={db} taskRepository={taskRepo} taskListRepository={listRepo} />
+    );
+
+    const fab = getByLabelText('Tạo task mới');
+    fireEvent.press(fab);
+
+    const titleInput = getByPlaceholderText('Tiêu đề công việc...');
+    fireEvent.changeText(titleInput, 'Mua sữa tươi');
+
+    const saveBtn = getByText('Lưu');
+    fireEvent.press(saveBtn);
+
+    await waitFor(() => {
+      expect(getByText('Mua sữa tươi')).toBeTruthy();
+    });
+
+    const allTasks = await taskRepo.getAllTasks();
+    expect(allTasks.length).toBe(1);
+    expect(allTasks[0].title).toBe('Mua sữa tươi');
+    expect(allTasks[0].status).toBe('PENDING');
+    expect(allTasks[0].priority).toBe('MEDIUM');
+    expect(allTasks[0].listId).toBe(DEFAULT_INBOX_ID);
+
+    await db.closeAsync();
+  });
+
+  it('demo: offline persistence across app restart (close and reopen database)', async () => {
+    const db1 = await createDatabase(testDbFile);
+    const taskRepo1 = new TaskRepository(db1);
+    await taskRepo1.createTask({ title: 'Task tồn tại qua khởi động lại' });
+    await db1.closeAsync();
+
+    const db2 = await createDatabase(testDbFile);
+    const taskRepo2 = new TaskRepository(db2);
+    const listRepo2 = new TaskListRepository(db2);
+
+    const { getByText } = render(
+      <App db={db2} taskRepository={taskRepo2} taskListRepository={listRepo2} />
+    );
+
+    await waitFor(() => {
+      expect(getByText('Task tồn tại qua khởi động lại')).toBeTruthy();
+    });
+
+    const persistedTasks = await taskRepo2.getAllTasks();
+    expect(persistedTasks.length).toBe(1);
+    expect(persistedTasks[0].title).toBe('Task tồn tại qua khởi động lại');
+    expect(persistedTasks[0].status).toBe('PENDING');
+
+    await db2.closeAsync();
+  });
+
+  it('demo: measures task creation time well within 10-second threshold (PRD §10)', async () => {
+    const db = await createDatabase(':memory:');
+    const taskRepo = new TaskRepository(db);
+    const listRepo = new TaskListRepository(db);
+
+    const startTime = performance.now();
+    const { getByLabelText, getByPlaceholderText, getByText } = render(
+      <App db={db} taskRepository={taskRepo} taskListRepository={listRepo} />
+    );
+
+    const fab = getByLabelText('Tạo task mới');
+    fireEvent.press(fab);
+
+    const titleInput = getByPlaceholderText('Tiêu đề công việc...');
+    fireEvent.changeText(titleInput, 'Task đo thời gian');
+
+    const saveBtn = getByText('Lưu');
+    fireEvent.press(saveBtn);
+
+    await waitFor(() => {
+      expect(getByText('Task đo thời gian')).toBeTruthy();
+    });
+    const endTime = performance.now();
+    const durationMs = endTime - startTime;
+
+    expect(durationMs).toBeLessThan(10000);
+    console.log(`[Demo Benchmark] Thời gian tạo task hoàn tất: ${durationMs.toFixed(2)} ms (Mục tiêu: <= 10.000 ms)`);
+
+    await db.closeAsync();
+  });
+});
+```
+
+QA scenarios:
+
+#### QA Context and Scenarios
+- **Task ID:** TASK-DEMO-S01-01.
+- **Linked Spec:** .verified-development-loop/specs/drafts/PLAN-DEMO-S01.md.
+- **Environment:** Jest, React Native Testing Library, SQLite file database.
+
+| ID | Acceptance criterion | Type | Steps | Expected result from Spec |
+| --- | --- | --- | --- | --- |
+| QA-01 | Given the app is launched, when creating a task with only a title, then the task is persisted offline with default Pending, Medium, and Inbox, and immediately displayed. | functional | Launch app -> Click FAB -> Enter title 'Demo Sprint 01' -> Click Save | Task displayed on TodayScreen with status PENDING, priority MEDIUM, inbox list |
+| QA-02 | Given a task is created offline, when the app is closed and reopened, then the task remains intact in the SQLite database and is retrieved successfully. | functional | Save task to sqlite file db -> Close db connection -> Reopen db from same file -> Query tasks | Task remains intact with identical id, title, timestamps, listId and status |
+| QA-03 | Given a task creation operation, when measured during execution, then the end-to-end task creation completes well under the 10-second threshold defined in PRD Section 10. | performance | Measure elapsed execution time during task creation and persist flow | Total time is strictly <= 10,000ms (typically < 100ms on test runner) |
+
+Verification:
+
+- `npm.cmd test -- sprint01Demo`
+- `npx.cmd tsc --noEmit`
+
+### TASK-DEMO-S01-02: Internal User Feedback, Product Backlog Update, Sprint 01 Review & Retrospective
+
+- Given the internal user trial observation, when recording usability feedback and button discoverability, then findings and friction points are documented in the Product Backlog.
+- Given the completion of Sprint 01, when conducting Sprint Review and Retrospective, then Sprint Goal achievement is evaluated, one concrete process improvement for Sprint 02 is selected, and Sprint 01 checklist is updated.
+
+Test code:
+
+### Documentation & Backlog Verification
+
+| Level | Case | Status or reason |
+| --- | --- | --- |
+| Documentation | Product backlog friction points & internal feedback | Required in docs/PRODUCT-BACKLOG.md |
+| Documentation | Sprint 01 Review, Retrospective & Action items | Required in sprints/SPRINT_01.md |
+| Regression | Existing test suite and type check must continue to pass cleanly | Required in npm test & tsc --noEmit |
+
+
+QA scenarios:
+
+#### QA Context and Scenarios
+- **Task ID:** TASK-DEMO-S01-02.
+- **Linked Spec:** .verified-development-loop/specs/drafts/PLAN-DEMO-S01.md.
+- **Environment:** Markdown documentation inspection, Jest, TypeScript.
+
+| ID | Acceptance criterion | Type | Steps | Expected result from Spec |
+| --- | --- | --- | --- | --- |
+| QA-04 | Given the internal user trial observation, when recording usability feedback and button discoverability, then findings and friction points are documented in the Product Backlog. | documentation | Inspect docs/PRODUCT-BACKLOG.md | Internal trial feedback, button discoverability, timing metrics and friction points recorded |
+| QA-05 | Given the completion of Sprint 01, when conducting Sprint Review and Retrospective, then Sprint Goal achievement is evaluated, one concrete process improvement for Sprint 02 is selected, and Sprint 01 checklist is updated. | documentation | Inspect sprints/SPRINT_01.md | Sprint Review & Retrospective recorded, process improvement for Sprint 02 chosen, checklist items marked [x] |
+
+Verification:
+
+- `npm.cmd test`
+- `npx.cmd tsc --noEmit`
+
+## Acceptance criteria
+
+- Given the app is launched, when creating a task with only a title, then the task is persisted offline with default Pending, Medium, and Inbox, and immediately displayed.
+- Given a task is created offline, when the app is closed and reopened, then the task remains intact in the SQLite database and is retrieved successfully.
+- Given a task creation operation, when measured during execution, then the end-to-end task creation completes well under the 10-second threshold defined in PRD Section 10.
+- Given the internal user trial observation, when recording usability feedback and button discoverability, then findings and friction points are documented in the Product Backlog.
+- Given the completion of Sprint 01, when conducting Sprint Review and Retrospective, then Sprint Goal achievement is evaluated, one concrete process improvement for Sprint 02 is selected, and Sprint 01 checklist is updated.
