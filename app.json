@@ -12,6 +12,9 @@
     },
     "android": {
       "minSdkVersion": 24
-    }
+    },
+    "plugins": [
+      "expo-asset"
+    ]
   }
 }
