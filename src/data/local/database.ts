@@ -19,6 +19,9 @@ class BetterSqliteWrapper implements DatabaseConnection {
   constructor(dbPath: string = ':memory:') {
     // Dynamic require for Node/Jest environment
     const Database = require('better-sqlite3');
+    if (typeof Database !== 'function') {
+      throw new Error('better-sqlite3 is only available in Node.js test environments');
+    }
     this.db = new Database(dbPath);
   }
 
@@ -96,15 +99,17 @@ class ExpoSqliteWrapper implements DatabaseConnection {
 }
 
 export async function createDatabase(dbPath: string = 'todo.db'): Promise<DatabaseConnection> {
-  const isNodeOrJest = typeof process !== 'undefined' && (process.env.JEST_WORKER_ID !== undefined || dbPath === ':memory:');
+  const isJest = typeof process !== 'undefined' && process.env?.JEST_WORKER_ID !== undefined;
 
   let connection: DatabaseConnection;
 
-  if (isNodeOrJest) {
-    connection = new BetterSqliteWrapper(dbPath);
+  if (isJest) {
+    const memoryPath = dbPath === 'todo.db' ? ':memory:' : dbPath;
+    connection = new BetterSqliteWrapper(memoryPath);
   } else {
     const SQLite = require('expo-sqlite');
-    const nativeDb = await SQLite.openDatabaseAsync(dbPath);
+    const realPath = dbPath === ':memory:' ? 'todo.db' : dbPath;
+    const nativeDb = await SQLite.openDatabaseAsync(realPath);
     connection = new ExpoSqliteWrapper(nativeDb);
   }
 
@@ -128,25 +133,53 @@ export async function createDatabase(dbPath: string = 'todo.db'): Promise<Databa
   return connection;
 }
 
-export function createDatabaseSync(dbPath: string = ':memory:'): DatabaseConnection {
-  const connection = new BetterSqliteWrapper(dbPath);
-  connection.execAsync('PRAGMA foreign_keys = ON;');
-  connection.execAsync(SCHEMA_SQL);
-  const now = Date.now();
-  connection.runAsync(
-    `INSERT OR IGNORE INTO task_lists (id, name, color, icon, is_default, created_at_ms, updated_at_ms)
-     VALUES (?, ?, ?, ?, 1, ?, ?);`,
-    [DEFAULT_INBOX_ID, DEFAULT_INBOX_NAME, DEFAULT_INBOX_COLOR, 'inbox', now, now]
-  );
-  connection.execAsync('PRAGMA user_version = 1;');
-  return connection;
+export function createDatabaseSync(dbPath: string = 'todo.db'): DatabaseConnection {
+  const isJest = typeof process !== 'undefined' && process.env?.JEST_WORKER_ID !== undefined;
+
+  if (isJest) {
+    const memoryPath = dbPath === 'todo.db' ? ':memory:' : dbPath;
+    const connection = new BetterSqliteWrapper(memoryPath);
+    connection.execAsync('PRAGMA foreign_keys = ON;');
+    connection.execAsync(SCHEMA_SQL);
+    const now = Date.now();
+    connection.runAsync(
+      `INSERT OR IGNORE INTO task_lists (id, name, color, icon, is_default, created_at_ms, updated_at_ms)
+       VALUES (?, ?, ?, ?, 1, ?, ?);`,
+      [DEFAULT_INBOX_ID, DEFAULT_INBOX_NAME, DEFAULT_INBOX_COLOR, 'inbox', now, now]
+    );
+    connection.execAsync('PRAGMA user_version = 1;');
+    return connection;
+  }
+
+  const SQLite = require('expo-sqlite');
+  const realPath = dbPath === ':memory:' ? 'todo.db' : dbPath;
+  const nativeDb = SQLite.openDatabaseSync(realPath);
+  try {
+    nativeDb.execSync('PRAGMA foreign_keys = ON;');
+    nativeDb.execSync(SCHEMA_SQL);
+    const now = Date.now();
+    nativeDb.runSync(
+      `INSERT OR IGNORE INTO task_lists (id, name, color, icon, is_default, created_at_ms, updated_at_ms)
+       VALUES (?, ?, ?, ?, 1, ?, ?);`,
+      DEFAULT_INBOX_ID,
+      DEFAULT_INBOX_NAME,
+      DEFAULT_INBOX_COLOR,
+      'inbox',
+      now,
+      now
+    );
+    nativeDb.execSync('PRAGMA user_version = 1;');
+  } catch (e) {
+    console.warn('Initial schema setup error:', e);
+  }
+  return new ExpoSqliteWrapper(nativeDb);
 }
 
 let sharedDatabaseInstance: DatabaseConnection | null = null;
 
 export function getSharedDatabase(): DatabaseConnection {
   if (!sharedDatabaseInstance) {
-    sharedDatabaseInstance = createDatabaseSync(':memory:');
+    sharedDatabaseInstance = createDatabaseSync('todo.db');
   }
   return sharedDatabaseInstance;
 }
