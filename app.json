@@ -14,9 +14,7 @@
       "minSdkVersion": 24
     },
     "plugins": [
-      "expo-asset",
-      "expo-sqlite",
-      "expo-status-bar"
+      "expo-asset"
     ]
   }
 }
