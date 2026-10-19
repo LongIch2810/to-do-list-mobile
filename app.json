@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Todo Mobile",
+    "slug": "to-do-list-mobile-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "deploymentTarget": "15.1"
+    },
+    "android": {
+      "minSdkVersion": 24
+    }
+  }
+}
