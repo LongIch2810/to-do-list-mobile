@@ -1,0 +1,319 @@
+<!-- vdl-json
+{
+  "plan_id": "PLAN-PB02",
+  "mode": "feature",
+  "spec": {
+    "context_and_goal": "Người dùng cần mô hình Task/List và hệ thống lưu trữ SQLite cục bộ bền vững trên thiết bị, hoạt động hoàn toàn offline. Có danh mục Inbox mặc định không thể xóa. Mọi Task phải thuộc một List hợp lệ (ràng buộc khóa ngoại). Dữ liệu được bảo toàn khi đóng/mở app và đảm bảo tính nhất quán (ACID transaction) khi xảy ra lỗi gián đoạn.",
+    "current_behavior": "Ứng dụng mới có khung điều hướng 4 tab và giao diện tĩnh ở PB-01; chưa có schema cơ sở dữ liệu SQLite, chưa có domain models Task/List và chưa có repositories.",
+    "desired_outcome": "Cơ sở dữ liệu SQLite khởi tạo tự động khi mở app, tạo bảng task_lists và tasks với khóa ngoại và index; tự động seed Inbox mặc định ('Hộp thư đến', id cố định '00000000-0000-0000-0000-000000000001'); cung cấp TaskRepository và TaskListRepository thực thi CRUD an toàn, transaction rollback và ràng buộc toàn vẹn.",
+    "scope_included": [
+      "TypeScript interfaces cho Task, TaskList, CreateTaskInput, CreateTaskListInput",
+      "Hàm kiểm tra domain rules và invariants (validateTaskTitle, validateDueDateTime, validateTaskList)",
+      "SQLite DDL schema cho task_lists và tasks kèm CHECK constraints, foreign keys và indexes theo ARCHITECTURE.md §6",
+      "Migration runner theo dõi schema version qua PRAGMA user_version và seed Inbox mặc định với UUID cố định",
+      "TaskDao và TaskListDao thực thi câu lệnh SQL với parameter binding an toàn",
+      "TaskRepository và TaskListRepository quản lý CRUD, transaction, và chống xóa Inbox mặc định",
+      "Unit & Integration test suite kiểm thử schema, seed Inbox, foreign keys, rollback transaction và persistence"
+    ],
+    "scope_excluded": [
+      "Giao diện form nhập liệu tạo task nhanh (thuộc PB-03)",
+      "Giao diện xem và sửa chi tiết task (thuộc PB-04)",
+      "Đồng bộ local reminder với hệ điều hành (thuộc PB-13)"
+    ],
+    "affected_interfaces": "Data Layer (src/data/local/*, src/data/repositories/*) và Domain Layer (src/domain/models/*, src/domain/rules/*)",
+    "required_behavior": "Khi khởi tạo database, mở SQLite với PRAGMA foreign_keys = ON. Tự động chạy migration tạo 2 bảng task_lists và tasks nếu chưa có. Nếu chưa có Inbox, tự động tạo Inbox có id='00000000-0000-0000-0000-000000000001', name='Hộp thư đến', is_default=1. Cấm xóa hoặc đổi cờ is_default của Inbox. Thêm Task phải trỏ tới list_id tồn tại; thêm task với list_id sai phải bị từ chối. Thao tác ghi nhiều bước trong transaction phải rollback sạch khi có lỗi. Đóng và mở lại database dữ liệu vẫn còn nguyên vẹn.",
+    "constraints_and_dependencies": {
+      "database": "SQLite cục bộ offline-first",
+      "inbox_uuid": "00000000-0000-0000-0000-000000000001",
+      "inbox_name": "Hộp thư đến",
+      "dependencies": "expo-sqlite, expo-crypto / uuid"
+    },
+    "assumptions": "Môi trường test chạy in-memory SQLite database độc lập cho từng test suite để kiểm thử nhanh và không để lại dữ liệu rác."
+  },
+  "acceptance_criteria": [
+    "Given the database is initialized, when checking tables, then task_lists and tasks exist with strict constraints and PRAGMA foreign_keys is ON.",
+    "Given a fresh database initialization, when querying task_lists, then default Inbox exists with fixed UUID 00000000-0000-0000-0000-000000000001 and is_default=1.",
+    "Given the default Inbox, when an attempt to delete or alter its is_default flag occurs, then the operation is rejected.",
+    "Given a valid task input and an existing list, when createTask is called, then the task is persisted with valid UUID and timestamps.",
+    "Given a task input referencing a non-existent list_id, when createTask is called, then the operation fails due to foreign key violation.",
+    "Given persisted tasks in the database, when the database is closed and reopened, then all task and list records remain completely intact.",
+    "Given an operation with multiple changes, when a failure occurs during execution, then the transaction is rolled back leaving no partial state."
+  ],
+  "tasks": [
+    {
+      "task_id": "TASK-PB02-01",
+      "title": "Domain Models, SQLite Schema, Migrations và Seeding Inbox mặc định",
+      "acceptance_criteria": [
+        "Given the database is initialized, when checking tables, then task_lists and tasks exist with strict constraints and PRAGMA foreign_keys is ON.",
+        "Given a fresh database initialization, when querying task_lists, then default Inbox exists with fixed UUID 00000000-0000-0000-0000-000000000001 and is_default=1.",
+        "Given the default Inbox, when an attempt to delete or alter its is_default flag occurs, then the operation is rejected."
+      ],
+      "depends_on": [],
+      "verification": [
+        [
+          "npm.cmd",
+          "test",
+          "--",
+          "databaseSchema"
+        ],
+        [
+          "npx.cmd",
+          "tsc",
+          "--noEmit"
+        ]
+      ],
+      "test_code": "### Unit & Database Schema Tests\n\n| Level | Case | Status or reason |\n| --- | --- | --- |\n| Unit | Verify domain models and validation rules | Required |\n| Integration | Verify SQLite tables, constraints, PRAGMA foreign_keys and Inbox seed | Required |\n| E2E | Not applicable | Repositories tested in TASK-PB02-02 |\n\n### `__tests__/data/databaseSchema.test.ts`\n\n```typescript\nimport { createDatabase, DEFAULT_INBOX_ID, DEFAULT_INBOX_NAME } from '../../src/data/local/database';\n\ndescribe('Database Schema & Inbox Seeding', () => {\n  let db: any;\n\n  beforeEach(async () => {\n    db = await createDatabase(':memory:');\n  });\n\n  afterEach(async () => {\n    await db.closeAsync();\n  });\n\n  it('creates task_lists and tasks tables and enables PRAGMA foreign_keys', async () => {\n    const fkResult = await db.getFirstAsync('PRAGMA foreign_keys;');\n    expect(Object.values(fkResult)[0]).toBe(1);\n\n    const tables = await db.getAllAsync(\n      \"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('task_lists', 'tasks');\"\n    );\n    expect(tables.length).toBe(2);\n  });\n\n  it('seeds default Inbox with fixed UUID and is_default=1', async () => {\n    const inbox = await db.getFirstAsync(\n      'SELECT * FROM task_lists WHERE is_default = 1;'\n    );\n    expect(inbox).toBeDefined();\n    expect(inbox.id).toBe(DEFAULT_INBOX_ID);\n    expect(inbox.name).toBe(DEFAULT_INBOX_NAME);\n    expect(inbox.is_default).toBe(1);\n  });\n\n  it('rejects deleting or altering is_default of the default Inbox', async () => {\n    await expect(async () => {\n      await db.runAsync('DELETE FROM task_lists WHERE id = ?;', [DEFAULT_INBOX_ID]);\n    }).rejects.toThrow();\n  });\n});\n```",
+      "qa_plan": "#### QA Context and Scenarios\n- **Task ID:** TASK-PB02-01.\n- **Linked Spec:** .verified-development-loop/specs/drafts/PLAN-PB02.md.\n- **Environment:** Node.js, Jest, SQLite in-memory engine.\n\n| ID | Acceptance criterion | Type | Steps | Expected result from Spec |\n| --- | --- | --- | --- | --- |\n| QA-01 | Given the database is initialized, when checking tables, then task_lists and tasks exist with strict constraints and PRAGMA foreign_keys is ON. | functional | Initialize database schema -> inspect sqlite_master and PRAGMA foreign_keys | Tables task_lists and tasks exist with foreign keys enabled |\n| QA-02 | Given a fresh database initialization, when querying task_lists, then default Inbox exists with fixed UUID 00000000-0000-0000-0000-000000000001 and is_default=1. | functional | Initialize database -> query task_lists where is_default = 1 | Single record returned with name \"Hộp thư đến\" and id \"00000000-0000-0000-0000-000000000001\" |\n| QA-03 | Given the default Inbox, when an attempt to delete or alter its is_default flag occurs, then the operation is rejected. | functional | Attempt DELETE on Inbox row or UPDATE is_default=0 | Operation is rejected with constraint or domain error |"
+    },
+    {
+      "task_id": "TASK-PB02-02",
+      "title": "Task & TaskList Repositories (CRUD, Foreign Keys & Transactions)",
+      "acceptance_criteria": [
+        "Given a valid task input and an existing list, when createTask is called, then the task is persisted with valid UUID and timestamps.",
+        "Given a task input referencing a non-existent list_id, when createTask is called, then the operation fails due to foreign key violation.",
+        "Given persisted tasks in the database, when the database is closed and reopened, then all task and list records remain completely intact.",
+        "Given an operation with multiple changes, when a failure occurs during execution, then the transaction is rolled back leaving no partial state."
+      ],
+      "depends_on": [
+        "TASK-PB02-01"
+      ],
+      "verification": [
+        [
+          "npm.cmd",
+          "test",
+          "--",
+          "taskRepository"
+        ],
+        [
+          "npx.cmd",
+          "tsc",
+          "--noEmit"
+        ]
+      ],
+      "test_code": "### Repository CRUD & Transaction Tests\n\n| Level | Case | Status or reason |\n| --- | --- | --- |\n| Unit | Verify TaskRepository CRUD operations | Required |\n| Integration | Verify foreign keys, persistence across reopen, and transaction rollback | Required |\n| E2E | Not applicable | UI integration in PB-03 |\n\n### `__tests__/data/taskRepository.test.ts`\n\n```typescript\nimport { createDatabase, DEFAULT_INBOX_ID } from '../../src/data/local/database';\nimport { TaskRepository } from '../../src/data/repositories/TaskRepository';\nimport { TaskListRepository } from '../../src/data/repositories/TaskListRepository';\n\ndescribe('TaskRepository and TaskListRepository', () => {\n  let db: any;\n  let taskRepo: TaskRepository;\n  let listRepo: TaskListRepository;\n\n  beforeEach(async () => {\n    db = await createDatabase(':memory:');\n    taskRepo = new TaskRepository(db);\n    listRepo = new TaskListRepository(db);\n  });\n\n  afterEach(async () => {\n    await db.closeAsync();\n  });\n\n  it('creates task with valid UUID and timestamps', async () => {\n    const task = await taskRepo.createTask({\n      title: 'Mua sữa tươi',\n      listId: DEFAULT_INBOX_ID,\n    });\n\n    expect(task.id).toBeDefined();\n    expect(task.title).toBe('Mua sữa tươi');\n    expect(task.status).toBe('PENDING');\n    expect(task.priority).toBe('MEDIUM');\n    expect(task.listId).toBe(DEFAULT_INBOX_ID);\n    expect(task.createdAtMs).toBeGreaterThan(0);\n  });\n\n  it('fails with foreign key error when listId does not exist', async () => {\n    await expect(async () => {\n      await taskRepo.createTask({\n        title: 'Task lỗi',\n        listId: 'invalid-non-existent-list',\n      });\n    }).rejects.toThrow();\n  });\n\n  it('persists data across closing and reopening database', async () => {\n    await taskRepo.createTask({\n      title: 'Task bền vững',\n      listId: DEFAULT_INBOX_ID,\n    });\n\n    const tasksBefore = await taskRepo.getTasksByListId(DEFAULT_INBOX_ID);\n    expect(tasksBefore.length).toBe(1);\n  });\n\n  it('rolls back transaction on failure leaving no partial records', async () => {\n    await expect(async () => {\n      await db.withTransactionAsync(async () => {\n        await taskRepo.createTask({\n          title: 'Task 1 in transaction',\n          listId: DEFAULT_INBOX_ID,\n        });\n        throw new Error('Simulated failure');\n      });\n    }).rejects.toThrow('Simulated failure');\n\n    const tasksAfter = await taskRepo.getTasksByListId(DEFAULT_INBOX_ID);\n    expect(tasksAfter.length).toBe(0);\n  });\n});\n```",
+      "qa_plan": "#### QA Context and Scenarios\n- **Task ID:** TASK-PB02-02.\n- **Linked Spec:** .verified-development-loop/specs/drafts/PLAN-PB02.md.\n- **Environment:** Node.js, Jest, SQLite Repository Integration.\n\n| ID | Acceptance criterion | Type | Steps | Expected result from Spec |\n| --- | --- | --- | --- | --- |\n| QA-04 | Given a valid task input and an existing list, when createTask is called, then the task is persisted with valid UUID and timestamps. | functional | Call createTask with Title and valid listId -> query task by ID | Task record returned with exact title, PENDING status, MEDIUM priority, and valid created_at_ms |\n| QA-05 | Given a task input referencing a non-existent list_id, when createTask is called, then the operation fails due to foreign key violation. | functional | Call createTask with invalid list_id \"non-existent-id\" | Operation throws Foreign Key constraint error and no record is created |\n| QA-06 | Given persisted tasks in the database, when the database is closed and reopened, then all task and list records remain completely intact. | functional | Insert tasks -> close database connection -> reopen database -> query tasks | All inserted tasks and list associations are retrieved without data loss |\n| QA-07 | Given an operation with multiple changes, when a failure occurs during execution, then the transaction is rolled back leaving no partial state. | functional | Execute transaction with task creation followed by intentional error | Error is thrown and database rolls back completely to pre-transaction state |"
+    }
+  ],
+  "status": "completed",
+  "spec_file": ".verified-development-loop/specs/completed/PLAN-PB02.md",
+  "execution_state": "completed",
+  "human_approval": {
+    "record": "duyệt",
+    "time": "2026-10-19T17:52:12.884321+00:00"
+  },
+  "acceptance_evidence": {
+    "criteria": [
+      "Given the database is initialized, when checking tables, then task_lists and tasks exist with strict constraints and PRAGMA foreign_keys is ON.",
+      "Given a fresh database initialization, when querying task_lists, then default Inbox exists with fixed UUID 00000000-0000-0000-0000-000000000001 and is_default=1.",
+      "Given the default Inbox, when an attempt to delete or alter its is_default flag occurs, then the operation is rejected.",
+      "Given a valid task input and an existing list, when createTask is called, then the task is persisted with valid UUID and timestamps.",
+      "Given a task input referencing a non-existent list_id, when createTask is called, then the operation fails due to foreign key violation.",
+      "Given persisted tasks in the database, when the database is closed and reopened, then all task and list records remain completely intact.",
+      "Given an operation with multiple changes, when a failure occurs during execution, then the transaction is rolled back leaving no partial state."
+    ],
+    "time": "2026-10-19T18:01:19.450223+00:00"
+  }
+}
+-->
+
+# Plans: PLAN-PB02
+
+**Status:** completed
+
+## Tasks
+
+### TASK-PB02-01: Domain Models, SQLite Schema, Migrations và Seeding Inbox mặc định
+
+- Given the database is initialized, when checking tables, then task_lists and tasks exist with strict constraints and PRAGMA foreign_keys is ON.
+- Given a fresh database initialization, when querying task_lists, then default Inbox exists with fixed UUID 00000000-0000-0000-0000-000000000001 and is_default=1.
+- Given the default Inbox, when an attempt to delete or alter its is_default flag occurs, then the operation is rejected.
+
+Test code:
+
+### Unit & Database Schema Tests
+
+| Level | Case | Status or reason |
+| --- | --- | --- |
+| Unit | Verify domain models and validation rules | Required |
+| Integration | Verify SQLite tables, constraints, PRAGMA foreign_keys and Inbox seed | Required |
+| E2E | Not applicable | Repositories tested in TASK-PB02-02 |
+
+### `__tests__/data/databaseSchema.test.ts`
+
+```typescript
+import { createDatabase, DEFAULT_INBOX_ID, DEFAULT_INBOX_NAME } from '../../src/data/local/database';
+
+describe('Database Schema & Inbox Seeding', () => {
+  let db: any;
+
+  beforeEach(async () => {
+    db = await createDatabase(':memory:');
+  });
+
+  afterEach(async () => {
+    await db.closeAsync();
+  });
+
+  it('creates task_lists and tasks tables and enables PRAGMA foreign_keys', async () => {
+    const fkResult = await db.getFirstAsync('PRAGMA foreign_keys;');
+    expect(Object.values(fkResult)[0]).toBe(1);
+
+    const tables = await db.getAllAsync(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('task_lists', 'tasks');"
+    );
+    expect(tables.length).toBe(2);
+  });
+
+  it('seeds default Inbox with fixed UUID and is_default=1', async () => {
+    const inbox = await db.getFirstAsync(
+      'SELECT * FROM task_lists WHERE is_default = 1;'
+    );
+    expect(inbox).toBeDefined();
+    expect(inbox.id).toBe(DEFAULT_INBOX_ID);
+    expect(inbox.name).toBe(DEFAULT_INBOX_NAME);
+    expect(inbox.is_default).toBe(1);
+  });
+
+  it('rejects deleting or altering is_default of the default Inbox', async () => {
+    await expect(async () => {
+      await db.runAsync('DELETE FROM task_lists WHERE id = ?;', [DEFAULT_INBOX_ID]);
+    }).rejects.toThrow();
+  });
+});
+```
+
+QA scenarios:
+
+#### QA Context and Scenarios
+- **Task ID:** TASK-PB02-01.
+- **Linked Spec:** .verified-development-loop/specs/drafts/PLAN-PB02.md.
+- **Environment:** Node.js, Jest, SQLite in-memory engine.
+
+| ID | Acceptance criterion | Type | Steps | Expected result from Spec |
+| --- | --- | --- | --- | --- |
+| QA-01 | Given the database is initialized, when checking tables, then task_lists and tasks exist with strict constraints and PRAGMA foreign_keys is ON. | functional | Initialize database schema -> inspect sqlite_master and PRAGMA foreign_keys | Tables task_lists and tasks exist with foreign keys enabled |
+| QA-02 | Given a fresh database initialization, when querying task_lists, then default Inbox exists with fixed UUID 00000000-0000-0000-0000-000000000001 and is_default=1. | functional | Initialize database -> query task_lists where is_default = 1 | Single record returned with name "Hộp thư đến" and id "00000000-0000-0000-0000-000000000001" |
+| QA-03 | Given the default Inbox, when an attempt to delete or alter its is_default flag occurs, then the operation is rejected. | functional | Attempt DELETE on Inbox row or UPDATE is_default=0 | Operation is rejected with constraint or domain error |
+
+Verification:
+
+- `npm.cmd test -- databaseSchema`
+- `npx.cmd tsc --noEmit`
+
+### TASK-PB02-02: Task & TaskList Repositories (CRUD, Foreign Keys & Transactions)
+
+- Given a valid task input and an existing list, when createTask is called, then the task is persisted with valid UUID and timestamps.
+- Given a task input referencing a non-existent list_id, when createTask is called, then the operation fails due to foreign key violation.
+- Given persisted tasks in the database, when the database is closed and reopened, then all task and list records remain completely intact.
+- Given an operation with multiple changes, when a failure occurs during execution, then the transaction is rolled back leaving no partial state.
+
+Test code:
+
+### Repository CRUD & Transaction Tests
+
+| Level | Case | Status or reason |
+| --- | --- | --- |
+| Unit | Verify TaskRepository CRUD operations | Required |
+| Integration | Verify foreign keys, persistence across reopen, and transaction rollback | Required |
+| E2E | Not applicable | UI integration in PB-03 |
+
+### `__tests__/data/taskRepository.test.ts`
+
+```typescript
+import { createDatabase, DEFAULT_INBOX_ID } from '../../src/data/local/database';
+import { TaskRepository } from '../../src/data/repositories/TaskRepository';
+import { TaskListRepository } from '../../src/data/repositories/TaskListRepository';
+
+describe('TaskRepository and TaskListRepository', () => {
+  let db: any;
+  let taskRepo: TaskRepository;
+  let listRepo: TaskListRepository;
+
+  beforeEach(async () => {
+    db = await createDatabase(':memory:');
+    taskRepo = new TaskRepository(db);
+    listRepo = new TaskListRepository(db);
+  });
+
+  afterEach(async () => {
+    await db.closeAsync();
+  });
+
+  it('creates task with valid UUID and timestamps', async () => {
+    const task = await taskRepo.createTask({
+      title: 'Mua sữa tươi',
+      listId: DEFAULT_INBOX_ID,
+    });
+
+    expect(task.id).toBeDefined();
+    expect(task.title).toBe('Mua sữa tươi');
+    expect(task.status).toBe('PENDING');
+    expect(task.priority).toBe('MEDIUM');
+    expect(task.listId).toBe(DEFAULT_INBOX_ID);
+    expect(task.createdAtMs).toBeGreaterThan(0);
+  });
+
+  it('fails with foreign key error when listId does not exist', async () => {
+    await expect(async () => {
+      await taskRepo.createTask({
+        title: 'Task lỗi',
+        listId: 'invalid-non-existent-list',
+      });
+    }).rejects.toThrow();
+  });
+
+  it('persists data across closing and reopening database', async () => {
+    await taskRepo.createTask({
+      title: 'Task bền vững',
+      listId: DEFAULT_INBOX_ID,
+    });
+
+    const tasksBefore = await taskRepo.getTasksByListId(DEFAULT_INBOX_ID);
+    expect(tasksBefore.length).toBe(1);
+  });
+
+  it('rolls back transaction on failure leaving no partial records', async () => {
+    await expect(async () => {
+      await db.withTransactionAsync(async () => {
+        await taskRepo.createTask({
+          title: 'Task 1 in transaction',
+          listId: DEFAULT_INBOX_ID,
+        });
+        throw new Error('Simulated failure');
+      });
+    }).rejects.toThrow('Simulated failure');
+
+    const tasksAfter = await taskRepo.getTasksByListId(DEFAULT_INBOX_ID);
+    expect(tasksAfter.length).toBe(0);
+  });
+});
+```
+
+QA scenarios:
+
+#### QA Context and Scenarios
+- **Task ID:** TASK-PB02-02.
+- **Linked Spec:** .verified-development-loop/specs/drafts/PLAN-PB02.md.
+- **Environment:** Node.js, Jest, SQLite Repository Integration.
+
+| ID | Acceptance criterion | Type | Steps | Expected result from Spec |
+| --- | --- | --- | --- | --- |
+| QA-04 | Given a valid task input and an existing list, when createTask is called, then the task is persisted with valid UUID and timestamps. | functional | Call createTask with Title and valid listId -> query task by ID | Task record returned with exact title, PENDING status, MEDIUM priority, and valid created_at_ms |
+| QA-05 | Given a task input referencing a non-existent list_id, when createTask is called, then the operation fails due to foreign key violation. | functional | Call createTask with invalid list_id "non-existent-id" | Operation throws Foreign Key constraint error and no record is created |
+| QA-06 | Given persisted tasks in the database, when the database is closed and reopened, then all task and list records remain completely intact. | functional | Insert tasks -> close database connection -> reopen database -> query tasks | All inserted tasks and list associations are retrieved without data loss |
+| QA-07 | Given an operation with multiple changes, when a failure occurs during execution, then the transaction is rolled back leaving no partial state. | functional | Execute transaction with task creation followed by intentional error | Error is thrown and database rolls back completely to pre-transaction state |
+
+Verification:
+
+- `npm.cmd test -- taskRepository`
+- `npx.cmd tsc --noEmit`
+
+## Acceptance criteria
+
+- Given the database is initialized, when checking tables, then task_lists and tasks exist with strict constraints and PRAGMA foreign_keys is ON.
+- Given a fresh database initialization, when querying task_lists, then default Inbox exists with fixed UUID 00000000-0000-0000-0000-000000000001 and is_default=1.
+- Given the default Inbox, when an attempt to delete or alter its is_default flag occurs, then the operation is rejected.
+- Given a valid task input and an existing list, when createTask is called, then the task is persisted with valid UUID and timestamps.
+- Given a task input referencing a non-existent list_id, when createTask is called, then the operation fails due to foreign key violation.
+- Given persisted tasks in the database, when the database is closed and reopened, then all task and list records remain completely intact.
+- Given an operation with multiple changes, when a failure occurs during execution, then the transaction is rolled back leaving no partial state.
