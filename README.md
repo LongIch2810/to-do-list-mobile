@@ -1,10 +1,10 @@
 # Todo Mobile App 📱
 
-> **Ứng dụng quản lý công việc cá nhân ngoại tuyến (Offline-First Personal Task Manager) xây dựng trên nền tảng React Native & Expo SDK 52.**
+> **Ứng dụng quản lý công việc cá nhân ngoại tuyến (Offline-First Personal Task Manager) xây dựng trên nền tảng React Native & Expo SDK 57.**
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
-[![React Native](https://img.shields.io/badge/React%20Native-0.76.7-61DAFB.svg)](https://reactnative.dev/)
-[![Expo](https://img.shields.io/badge/Expo%20SDK-52.0-black.svg)](https://expo.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-blue.svg)](https://www.typescriptlang.org/)
+[![React Native](https://img.shields.io/badge/React%20Native-0.86.3-61DAFB.svg)](https://reactnative.dev/)
+[![Expo](https://img.shields.io/badge/Expo%20SDK-57.0-black.svg)](https://expo.dev/)
 [![SQLite](https://img.shields.io/badge/SQLite-Local%20Storage-003B57.svg)](https://docs.expo.dev/versions/latest/sdk/sqlite/)
 [![Accessibility](https://img.shields.io/badge/Accessibility-WCAG%202.2%20AA-success.svg)](https://www.w3.org/WAI/standards-guidelines/wcag/)
 [![Tests](https://img.shields.io/badge/Tests-Passing%20(22%2F22)-brightgreen.svg)]()
