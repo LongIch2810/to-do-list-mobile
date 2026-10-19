@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
+  View,
   TextInput,
   TouchableOpacity,
-  View,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
   ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -29,10 +29,18 @@ export const TaskFormModal: React.FC = () => {
     handleSave,
   } = useTaskFormViewModel(taskRepository);
 
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+
   const onSubmit = async () => {
-    await handleSave(() => {
+    setHasAttemptedSubmit(true);
+    const task = await handleSave();
+    if (task) {
       navigation.goBack();
-    });
+    }
+  };
+
+  const handleClose = () => {
+    navigation.goBack();
   };
 
   return (
@@ -43,13 +51,13 @@ export const TaskFormModal: React.FC = () => {
       >
         <View style={styles.header}>
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={handleClose}
             accessible={true}
             accessibilityRole="button"
-            accessibilityLabel="Đóng modal"
+            accessibilityLabel="Hủy và đóng form"
             style={styles.closeButton}
           >
-            <Text style={styles.closeText}>Đóng</Text>
+            <Text style={styles.closeText}>Hủy</Text>
           </TouchableOpacity>
 
           <Text style={styles.headerTitle}>Tạo task mới</Text>
@@ -59,7 +67,7 @@ export const TaskFormModal: React.FC = () => {
             disabled={isSaving}
             accessible={true}
             accessibilityRole="button"
-            accessibilityLabel="Lưu task"
+            accessibilityLabel="Lưu công việc"
             accessibilityState={{ disabled: isSaving, busy: isSaving }}
             style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
           >
@@ -94,7 +102,7 @@ export const TaskFormModal: React.FC = () => {
             <TextInput
               style={styles.titleInput}
               placeholder="Tiêu đề công việc..."
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor={theme.colors.textTertiary}
               value={title}
               onChangeText={setTitle}
               maxLength={200}
@@ -110,7 +118,7 @@ export const TaskFormModal: React.FC = () => {
             <TextInput
               style={styles.descInput}
               placeholder="Thêm ghi chú hoặc mô tả..."
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor={theme.colors.textTertiary}
               value={description}
               onChangeText={setDescription}
               maxLength={5000}
@@ -135,8 +143,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.space7,
+    paddingVertical: theme.spacing.space3,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
@@ -144,14 +152,14 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: theme.typography.sizes.lg,
     fontWeight: theme.typography.weights.bold,
-    color: theme.colors.text,
+    color: theme.colors.textPrimary,
   },
   closeButton: {
     minWidth: theme.metrics.minTouchTarget,
     minHeight: theme.metrics.minTouchTarget,
     justifyContent: 'center',
     alignItems: 'flex-start',
-    paddingHorizontal: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.space1,
   },
   closeText: {
     fontSize: theme.typography.sizes.md,
@@ -165,11 +173,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: theme.colors.primary,
-    borderRadius: theme.metrics.borderRadius.sm,
-    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.metrics.borderRadius.xs,
+    paddingHorizontal: theme.spacing.space7,
   },
   saveButtonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   saveButtonText: {
     fontSize: theme.typography.sizes.md,
@@ -177,22 +185,22 @@ const styles = StyleSheet.create({
     fontWeight: theme.typography.weights.semibold,
   },
   savingSpinner: {
-    marginRight: theme.spacing.xs,
+    marginRight: theme.spacing.space1,
   },
   body: {
     flex: 1,
     backgroundColor: theme.colors.background,
   },
   bodyContent: {
-    padding: theme.spacing.md,
+    padding: theme.spacing.space7,
   },
   errorContainer: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: theme.colors.errorBg,
     borderWidth: 1,
-    borderColor: '#FCA5A5',
-    borderRadius: theme.metrics.borderRadius.sm,
-    padding: theme.spacing.sm,
-    marginBottom: theme.spacing.md,
+    borderColor: theme.colors.errorBorder,
+    borderRadius: theme.metrics.borderRadius.xs,
+    padding: theme.spacing.space3,
+    marginBottom: theme.spacing.space7,
   },
   errorText: {
     fontSize: theme.typography.sizes.sm,
@@ -200,34 +208,34 @@ const styles = StyleSheet.create({
     fontWeight: theme.typography.weights.medium,
   },
   inputGroup: {
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.space7,
   },
   label: {
     fontSize: theme.typography.sizes.sm,
     fontWeight: theme.typography.weights.semibold,
-    color: theme.colors.text,
-    marginBottom: theme.spacing.xs,
+    color: theme.colors.textPrimary,
+    marginBottom: theme.spacing.space1,
   },
   titleInput: {
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.metrics.borderRadius.sm,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.metrics.borderRadius.xs,
+    paddingHorizontal: theme.spacing.space7,
+    paddingVertical: theme.spacing.space3,
     fontSize: theme.typography.sizes.md,
-    color: theme.colors.text,
+    color: theme.colors.textPrimary,
     minHeight: theme.metrics.minTouchTarget,
   },
   descInput: {
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: theme.metrics.borderRadius.sm,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.metrics.borderRadius.xs,
+    paddingHorizontal: theme.spacing.space7,
+    paddingVertical: theme.spacing.space3,
     fontSize: theme.typography.sizes.md,
-    color: theme.colors.text,
+    color: theme.colors.textPrimary,
     minHeight: 100,
   },
 });

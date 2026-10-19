@@ -28,25 +28,28 @@ export const ListsScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   header: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: theme.spacing.space7,
+    paddingVertical: theme.spacing.space5,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
   title: {
     fontSize: theme.typography.sizes.xxl,
     fontWeight: theme.typography.weights.bold,
-    color: theme.colors.text,
+    color: theme.colors.textPrimary,
   },
   content: {
     flex: 1,
+    backgroundColor: theme.colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     padding: theme.spacing.lg,
   },
   subtitle: {
     fontSize: theme.typography.sizes.md,
-    color: theme.colors.textSecondary,
+    color: theme.colors.textTertiary,
     textAlign: 'center',
+    lineHeight: theme.typography.lineHeights.md,
   },
 });

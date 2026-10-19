@@ -20,29 +20,32 @@ export const SettingsScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   header: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: theme.spacing.space7,
+    paddingVertical: theme.spacing.space5,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
   title: {
     fontSize: theme.typography.sizes.xxl,
     fontWeight: theme.typography.weights.bold,
-    color: theme.colors.text,
+    color: theme.colors.textPrimary,
   },
   content: {
     flex: 1,
+    backgroundColor: theme.colors.background,
     padding: theme.spacing.lg,
   },
   sectionTitle: {
     fontSize: theme.typography.sizes.lg,
     fontWeight: theme.typography.weights.semibold,
-    color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    color: theme.colors.textPrimary,
+    marginBottom: theme.spacing.space3,
   },
   infoText: {
     fontSize: theme.typography.sizes.sm,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.xs,
+    color: theme.colors.textTertiary,
+    marginBottom: theme.spacing.space1,
+    lineHeight: theme.typography.lineHeights.base,
   },
 });

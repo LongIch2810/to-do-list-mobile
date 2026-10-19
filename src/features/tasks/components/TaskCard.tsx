@@ -11,9 +11,9 @@ export interface TaskCardProps {
 }
 
 const PRIORITY_LABELS: Record<TaskPriority, { text: string; bg: string; color: string }> = {
-  HIGH: { text: 'Cao', bg: '#FEE2E2', color: '#DC2626' },
-  MEDIUM: { text: 'Vừa', bg: '#FEF3C7', color: '#D97706' },
-  LOW: { text: 'Thấp', bg: '#DBEAFE', color: '#2563EB' },
+  HIGH: { text: 'Cao', bg: theme.colors.errorBg, color: theme.colors.error },
+  MEDIUM: { text: 'Vừa', bg: theme.colors.warningBg, color: '#B45309' },
+  LOW: { text: 'Thấp', bg: theme.colors.primaryLight, color: theme.colors.primary },
 };
 
 export const TaskCard: React.FC<TaskCardProps> = ({
@@ -92,28 +92,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.metrics.borderRadius.md,
+    borderRadius: theme.metrics.borderRadius.xs,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    paddingVertical: theme.spacing.space3,
+    paddingHorizontal: theme.spacing.space7,
+    marginBottom: theme.spacing.space3,
+    ...theme.shadows.shadow1,
   },
   cardCompleted: {
-    backgroundColor: '#F9FAFB',
-    opacity: 0.8,
+    backgroundColor: theme.colors.background,
+    borderColor: theme.colors.borderLight,
+    opacity: 0.75,
   },
   checkboxTouchTarget: {
     minWidth: theme.metrics.minTouchTarget,
     minHeight: theme.metrics.minTouchTarget,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: theme.spacing.sm,
+    marginRight: theme.spacing.space3,
   },
   checkbox: {
     width: 22,
@@ -123,7 +120,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   checkboxCompleted: {
     backgroundColor: theme.colors.success,
@@ -137,7 +134,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'center',
-    paddingVertical: theme.spacing.xs,
+    paddingVertical: theme.spacing.space1,
   },
   titleRow: {
     flexDirection: 'row',
@@ -147,27 +144,27 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     fontSize: theme.typography.sizes.md,
-    fontWeight: theme.typography.weights.medium,
-    color: theme.colors.text,
-    marginRight: theme.spacing.sm,
+    fontWeight: theme.typography.weights.semibold,
+    color: theme.colors.textPrimary,
+    marginRight: theme.spacing.space3,
   },
   titleCompleted: {
     textDecorationLine: 'line-through',
-    color: theme.colors.textSecondary,
+    color: theme.colors.textTertiary,
   },
   description: {
     fontSize: theme.typography.sizes.sm,
-    color: theme.colors.textSecondary,
+    color: theme.colors.textTertiary,
     marginTop: 2,
   },
   descriptionCompleted: {
     textDecorationLine: 'line-through',
-    color: '#9CA3AF',
+    color: theme.colors.textTertiary,
   },
   priorityBadge: {
-    paddingHorizontal: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.space2,
     paddingVertical: 2,
-    borderRadius: theme.metrics.borderRadius.sm,
+    borderRadius: theme.metrics.borderRadius.xs,
   },
   priorityText: {
     fontSize: theme.typography.sizes.xs,
